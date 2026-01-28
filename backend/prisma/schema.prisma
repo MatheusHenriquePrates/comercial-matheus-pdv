@@ -1,0 +1,392 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== MODELS =====
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  name      String
+  role      Role     @default(OPERATOR)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  sales     Sale[]
+  cashiers  Cashier[]
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  code          String?  @unique // CÃ³digo interno
+  barcode       String?  @unique // EAN
+  name          String
+  description   String?
+  
+  // Classification
+  ncm           String?
+  brand         String?
+  manufacturer  String?
+  category      String?
+  
+  // Financial
+  cost          Float?   // Custo de compra
+  price         Float    // PreÃ§o de venda
+  profitMargin  Float?   // Margem de lucro provided or calculated
+  
+  // Stock
+  unit          String   @default("UN")
+  stock         Float    @default(0)
+  minStock      Float    @default(10)
+  
+  // Packaging
+  unidadeEmbalagem      String?  // "CX", "PCT", "FD" (da NFE)
+  unidadesPorEmbalagem  Int      @default(1) // Quantas unidades vêm na embalagem
+  
+  // Taxes
+  taxICMS       Float?
+  taxIPI        Float?
+  taxPIS        Float?
+  taxCOFINS     Float?
+
+  image         String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  saleItems     SaleItem[]
+  movements     StockMovement[]
+}
+
+model StockMovement {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  type        String   // "entrada_nfe", "saida_venda", "ajuste_manual"
+  quantity    Float
+  reason      String?
+  nfeNumber   String?
+  saleId      Int?
+  
+  createdAt   DateTime @default(now())
+  
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Sale {
+  id              Int           @id @default(autoincrement())
+  localId         String?       @unique
+  subtotal        Float
+  discount        Float         @default(0)
+  total           Float
+  paymentMethod   PaymentMethod
+  paymentDetails  String?       // JSON stringified
+  cpf             String?
+  delivery        String?       // JSON stringified
+  cashierId       Int
+  operatorId      Int
+  canceled        Boolean       @default(false)
+  cancelReason    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  items           SaleItem[]
+  cashier         Cashier       @relation(fields: [cashierId], references: [id])
+  operator        User          @relation(fields: [operatorId], references: [id])
+  debts           Debt[]
+  nfce            IssuedNFCe?
+}
+
+model SaleItem {
+  id          Int      @id @default(autoincrement())
+  saleId      Int
+  productId   Int?
+  description String
+  quantity    Float
+  unitPrice   Float
+  subtotal    Float
+  
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+}
+
+enum PaymentMethod {
+  CASH
+  DEBIT
+  CREDIT
+  PIX
+  INSTALLMENT
+}
+
+model Cashier {
+  id               Int           @id @default(autoincrement())
+  number           Int           @default(1)
+  status           CashierStatus @default(CLOSED)
+  openedAt         DateTime?
+  closedAt         DateTime?
+  openingBalance   Float         @default(0)
+  expectedBalance  Float?
+  actualBalance    Float?
+  difference       Float?
+  observations     String?
+  operatorId       Int
+  
+  operator         User          @relation(fields: [operatorId], references: [id])
+  sales            Sale[]
+  transactions     CashierTransaction[]
+}
+
+enum CashierStatus {
+  OPEN
+  CLOSED
+}
+
+model CashierTransaction {
+  id           Int             @id @default(autoincrement())
+  localId      String?         @unique
+  cashierId    Int
+  type         TransactionType
+  amount       Float
+  description  String
+  observations String?
+  createdAt    DateTime        @default(now())
+  
+  cashier      Cashier         @relation(fields: [cashierId], references: [id])
+}
+
+enum TransactionType {
+  SALE
+  WITHDRAWAL
+  SUPPLY
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  cpf       String?  @unique
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  birthDate DateTime?
+  photoUrl  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  debts     Debt[]
+}
+
+model Debt {
+  id              Int      @id @default(autoincrement())
+  customerId      Int
+  saleId          Int?
+  amount          Float    // Current remaining amount
+  originalAmount  Float    // Original installment amount
+  interest        Float    @default(0)
+  remaining       Float    // Kept for backward compatibility, same as amount
+  installments    Int      @default(1) // Total installments of the sale
+  installmentNo   Int      @default(1) // Number of this specific installment
+  status          DebtStatus @default(PENDING)
+  dueDate         DateTime
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  customer        Customer @relation(fields: [customerId], references: [id])
+  sale            Sale?    @relation(fields: [saleId], references: [id])
+  payments        DebtPayment[]
+}
+
+model DebtPayment {
+  id          Int      @id @default(autoincrement())
+  debtId      Int
+  amount      Float
+  description String?
+  createdAt   DateTime @default(now())
+  
+  debt        Debt     @relation(fields: [debtId], references: [id])
+}
+
+enum DebtStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+// ===== FISCAL MODELS =====
+
+model FiscalConfig {
+  id                  Int      @id @default(autoincrement())
+
+  // Empresa
+  cnpj                String   @unique
+  razaoSocial         String
+  nomeFantasia        String
+  inscricaoEstadual   String
+  inscricaoMunicipal  String?
+  crt                 String   @default("1") // 1=Simples Nacional, 2=Simples Excesso, 3=Regime Normal
+
+  // Endereço
+  logradouro          String
+  numero              String
+  complemento         String?
+  bairro              String
+  codigoMunicipio     String
+  nomeMunicipio       String
+  uf                  String
+  cep                 String
+  telefone            String?
+
+  // Configurações NFC-e
+  serie               Int      @default(1)
+  ultimoNumero        Int      @default(0)
+  ambiente            String   @default("homologacao") // "homologacao" ou "producao"
+
+  // CSC (Código de Segurança do Contribuinte)
+  cscId               String?
+  cscToken            String?  // Encrypted
+
+  // Certificado A3
+  certificateType     String   @default("A3") // "A1" ou "A3"
+  certificatePin      String?  // Encrypted PIN do cartão A3
+  pkcs11Library       String?  // Caminho da biblioteca do leitor
+
+  // Certificado A1 (se usar)
+  certificateA1       String?  // Base64 do arquivo .pfx
+  certificateA1Pass   String?  // Encrypted senha do .pfx
+
+  // Contingência
+  contingencyMode     Boolean  @default(false)
+  contingencyReason   String?
+
+  // Metadados
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  nfces               IssuedNFCe[]
+}
+
+model IssuedNFCe {
+  id                  Int      @id @default(autoincrement())
+
+  // Identificação
+  numero              Int
+  serie               Int
+  modelo              String   @default("65") // 65=NFC-e, 55=NF-e
+  chaveAcesso         String   @unique // 44 dígitos
+
+  // Venda relacionada
+  saleId              Int      @unique
+
+  // Status
+  status              NFCeStatus @default(PROCESSANDO)
+  tipoEmissao         String   @default("1") // 1=Normal, 9=Contingência
+
+  // SEFAZ
+  protocolo           String?  // Protocolo de autorização
+  dataAutorizacao     DateTime?
+  mensagemSefaz       String?
+  codigoStatus        String?  // cStat da SEFAZ
+
+  // XMLs
+  xmlEnvio            String   @db.Text // XML enviado (assinado)
+  xmlRetorno          String?  @db.Text // XML de retorno da SEFAZ
+  xmlCompleto         String?  @db.Text // XML com protocolo (para DANFE)
+
+  // Valores
+  valorTotal          Float
+  valorProdutos       Float
+  valorDesconto       Float    @default(0)
+
+  // Destinatário
+  destinatarioCpf     String?
+  destinatarioNome    String?
+
+  // Cancelamento
+  cancelada           Boolean  @default(false)
+  dataCancelamento    DateTime?
+  protocoloCancelamento String?
+  motivoCancelamento  String?
+
+  // Contingência
+  contingencia        Boolean  @default(false)
+  dataContingencia    DateTime?
+
+  // Metadados
+  fiscalConfigId      Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  sale                Sale     @relation(fields: [saleId], references: [id])
+  fiscalConfig        FiscalConfig @relation(fields: [fiscalConfigId], references: [id])
+  items               NFCeItem[]
+  contingencyData     NFCeContingency?
+}
+
+model NFCeItem {
+  id                  Int      @id @default(autoincrement())
+  nfceId              Int
+  numeroItem          Int      // Sequencial do item na nota
+
+  // Produto
+  codigoProduto       String
+  ean                 String?
+  descricao           String
+  ncm                 String
+  cfop                String
+  unidade             String
+
+  // Valores
+  quantidade          Float
+  valorUnitario       Float
+  valorTotal          Float
+
+  // Impostos
+  icmsOrigem          String   @default("0") // 0=Nacional
+  icmsCsosn           String   @default("102") // Para Simples Nacional
+  pisCST              String   @default("07") // 07=Isenta
+  cofinsCST           String   @default("07")
+
+  nfce                IssuedNFCe @relation(fields: [nfceId], references: [id], onDelete: Cascade)
+}
+
+model NFCeContingency {
+  id                  Int      @id @default(autoincrement())
+  nfceId              Int      @unique
+
+  // Dados da contingência
+  motivo              String
+  dataHoraEntrada     DateTime
+  dataHoraSaida       DateTime?
+
+  // Transmissão posterior
+  transmitida         Boolean  @default(false)
+  dataTransmissao     DateTime?
+  protocoloTransmissao String?
+
+  nfce                IssuedNFCe @relation(fields: [nfceId], references: [id], onDelete: Cascade)
+}
+
+enum NFCeStatus {
+  PROCESSANDO       // Enviando para SEFAZ
+  AUTORIZADA        // Autorizada pela SEFAZ
+  REJEITADA         // Rejeitada pela SEFAZ
+  CANCELADA         // Cancelada
+  DENEGADA          // Denegada (problema cadastral)
+  CONTINGENCIA      // Emitida em contingência
+}

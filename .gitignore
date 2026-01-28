@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Build
+dist/
+build/
+
+# Environment (NUNCA commitar!)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+nfe-error.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.db-journal
+
+# Prisma
+backend/prisma/migrations/**/migration_lock.toml
+
+# Fiscal Documents (XMLs, PDFs de notas fiscais)
+backend/storage/
+storage/
+
+# Digital Certificates (NUNCA commitar!)
+*.pfx
+*.p12
+*.pem
+*.key
+*.cer
+*.crt
+
+# Temp files
+tmp/
+temp/
+.tmp/
