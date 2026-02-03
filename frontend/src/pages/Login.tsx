@@ -3,11 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, Lock, ArrowLeft, Loader2, ShoppingCart, BarChart3, Moon, Sun } from 'lucide-react'
+import { User, Lock, ArrowLeft, Loader2, ShoppingCart, BarChart3 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { authAPI } from '../services/api'
 import { useAuthStore } from '../store/useAuthStore'
-import { useThemeStore } from '../store/useThemeStore'
 
 const loginSchema = z.object({
     username: z.string().min(1, 'Usuário é obrigatório'),
@@ -20,7 +19,6 @@ export default function Login() {
     const navigate = useNavigate()
     const location = useLocation()
     const { login: storeLogin } = useAuthStore()
-    const { theme, toggleTheme } = useThemeStore()
     const [isLoading, setIsLoading] = useState(false)
 
     // Get module from state or default to sales
@@ -60,15 +58,6 @@ export default function Login() {
                 <div className="absolute -top-20 -right-20 w-80 h-80 bg-green-400/20 dark:bg-green-500/10 rounded-full blur-3xl" />
                 <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-emerald-400/20 dark:bg-emerald-500/10 rounded-full blur-3xl" />
             </div>
-
-            {/* Theme Toggle */}
-            <button
-                onClick={toggleTheme}
-                className="absolute top-6 right-6 flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white p-3 rounded-xl transition-all z-20 backdrop-blur-sm border border-white/20"
-                aria-label="Alternar tema"
-            >
-                {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            </button>
 
             {/* Back button */}
             <button

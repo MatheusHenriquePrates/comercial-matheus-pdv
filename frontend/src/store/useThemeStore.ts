@@ -2,40 +2,37 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 interface ThemeState {
-    theme: 'light' | 'dark'
+    theme: 'dark'
     toggleTheme: () => void
-    setTheme: (theme: 'light' | 'dark') => void
+    setTheme: (theme: 'dark') => void
 }
 
 export const useThemeStore = create<ThemeState>()(
     persist(
         (set) => ({
-            theme: 'light',
-            toggleTheme: () => set((state) => {
-                const newTheme = state.theme === 'light' ? 'dark' : 'light'
+            theme: 'dark',
+            toggleTheme: () => set(() => {
+                // Sempre dark mode
                 const root = window.document.documentElement
-
-                root.classList.remove('light', 'dark')
-                root.classList.add(newTheme)
-
-                return { theme: newTheme }
+                root.classList.remove('light')
+                root.classList.add('dark')
+                return { theme: 'dark' }
             }),
-            setTheme: (theme) => set(() => {
+            setTheme: () => set(() => {
+                // Sempre dark mode
                 const root = window.document.documentElement
-                root.classList.remove('light', 'dark')
-                root.classList.add(theme)
-
-                return { theme }
+                root.classList.remove('light')
+                root.classList.add('dark')
+                return { theme: 'dark' }
             }),
         }),
         {
             name: 'theme-storage',
-            onRehydrateStorage: () => (state) => {
-                if (state) {
-                    const root = window.document.documentElement
-                    root.classList.remove('light', 'dark')
-                    root.classList.add(state.theme)
-                }
+            onRehydrateStorage: () => () => {
+                // Sempre aplicar dark mode na inicialização
+                const root = window.document.documentElement
+                root.classList.remove('light')
+                root.classList.add('dark')
             }
         }
     )

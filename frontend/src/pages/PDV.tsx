@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
     Search, ShoppingCart, Plus, Minus, Trash2, Package,
     DollarSign, Menu, LogOut, Wallet, RefreshCw, Star, ChevronDown, ChevronUp, MapPin,
-    Banknote, CreditCard, Smartphone, FileText, ClipboardList, Users, AlertTriangle, Check, Moon, Sun,
+    Banknote, CreditCard, Smartphone, FileText, ClipboardList, Users, AlertTriangle, Check,
     Receipt, Download, X
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -12,7 +12,6 @@ import { useAuthStore } from '../store/useAuthStore'
 import { useCartStore } from '../store/useCartStore'
 import { useCashierStore } from '../store/useCashierStore'
 import { useSyncStore } from '../store/useSyncStore'
-import { useThemeStore } from '../store/useThemeStore'
 import { productsAPI, cashierAPI, salesAPI, customersAPI } from '../services/api'
 import { syncService } from '../services/sync.service'
 import { printerService } from '../services/printer.service'
@@ -62,7 +61,6 @@ export default function PDV() {
     const { items, subtotal, total, addItem, updateQuantity, removeItem, clearCart } = useCartStore()
     const { currentCashier, status: cashierStatus, setCashier, openCashier, closeCashier } = useCashierStore()
     const { status: syncStatus, pendingCount, isOnline } = useSyncStore()
-    const { theme, toggleTheme } = useThemeStore()
 
     const [currentTime, setCurrentTime] = useState(new Date())
     const [searchQuery, setSearchQuery] = useState('')
@@ -477,11 +475,6 @@ export default function PDV() {
 
                         {showMenu && (
                             <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl py-2 z-50 border border-gray-100 dark:border-gray-700">
-                                <button onClick={toggleTheme} className="w-full px-4 py-2.5 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 font-medium">
-                                    {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                                    {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
-                                </button>
-                                <hr className="my-1 border-gray-200 dark:border-gray-700" />
                                 <button onClick={() => { setShowOpenCashierModal(true); setShowMenu(false) }} className="w-full px-4 py-2.5 text-left text-green-800 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-2 font-medium disabled:opacity-50" disabled={cashierStatus === 'open'}>
                                     <Wallet className="w-4 h-4" /> Abrir Caixa
                                 </button>

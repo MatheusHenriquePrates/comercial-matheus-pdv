@@ -1,17 +1,15 @@
 import { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
-    LayoutDashboard, Users, LogOut, Menu, ChevronLeft, Moon, Sun,
+    LayoutDashboard, Users, LogOut, Menu, ChevronLeft,
     FileText, Package, Database, Receipt
 } from 'lucide-react'
 import { useAuthStore } from '../../store/useAuthStore'
-import { useThemeStore } from '../../store/useThemeStore'
 
 export default function ManagementLayout() {
     const navigate = useNavigate()
     const location = useLocation()
     const { user, logout } = useAuthStore()
-    const { theme, toggleTheme } = useThemeStore()
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
     const menuItems = [
@@ -113,14 +111,6 @@ export default function ManagementLayout() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
-                            title={theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
-                        >
-                            {theme === 'dark' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
-                        </button>
-
                         <div className="flex items-center gap-3 pl-6 border-l border-gray-200 dark:border-gray-700 transition-colors">
                             <div className="text-right hidden md:block">
                                 <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{user?.name}</p>
