@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Save, AlertCircle } from 'lucide-react'
 import { fiscalService, FiscalConfig as FiscalConfigType } from '../../services/fiscal.service'
 import toast from 'react-hot-toast'
 

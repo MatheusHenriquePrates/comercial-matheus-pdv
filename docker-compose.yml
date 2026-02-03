@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # BANCO DE DADOS - INTERNO (NÃO EXPOSTO)
+  # ==========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: pdv-matheus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pdv_matheus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: comercial_matheus_pdv
+    volumes:
+      - pdv_postgres_data:/var/lib/postgresql/data
+    networks:
+      - pdv-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdv_matheus -d comercial_matheus_pdv"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # BACKEND API - EXPOSTO APENAS LOCAL
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pdv-matheus-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://pdv_matheus:${POSTGRES_PASSWORD}@postgres:5432/comercial_matheus_pdv
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      PORT: 3333
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3334:3333"  # Apenas localhost
+    networks:
+      - pdv-internal
+
+  # ==========================================
+  # FRONTEND - EXPOSTO APENAS LOCAL
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://api.matheusprates.com
+    container_name: pdv-matheus-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:3335:80"  # Apenas localhost
+    networks:
+      - pdv-internal
+
+networks:
+  pdv-internal:
+    name: pdv-matheus-network
+    driver: bridge
+
+volumes:
+  pdv_postgres_data:
+    name: pdv-matheus-postgres-data
